@@ -1,3 +1,5 @@
+# See http://nbviewer.ipython.org/gist/joernklinger/e4c4936ad09bc1560546
+
 # Import modules
 import numpy as np
 import pdb
@@ -25,6 +27,7 @@ def initialize_model(model, groups=3, users=12, features=6):
 
     mu, sigma = 0.5, 0.0001
     model.conditional_probabilities_log[:, 1:model.groups] = (np.log(np.random.normal(mu, sigma, [model.features, model.groups-1])))
+    model.conditional_probabilities_log = np.transpose(model.conditional_probabilities_log)
 
     # probability_user_in_group_log rows: users, cols: log([p(class0), p(class1)])
     model.probability_user_in_group_log = np.empty([model.users, model.groups], dtype=float)
@@ -55,6 +58,17 @@ def create_toy_data(model, dividing_line):
             toy_data[user, model.features/model.groups*group:model.features/model.groups*(group+1)] = nr_r
 
     return toy_data
+
+
+def step1(model, data):
+    ''' calculate probability of each user being in class 0…n '''
+    for row in xrange(0, data.shape[0]):
+        model.probability_user_in_group_log[row] = (data[row,]*model.conditional_probabilities_log).sum(axis=1) + model.group_probabilities_log
+
+        # Normalize probability_user_in_class
+        model.probability_user_in_group_log[row] = model.probability_user_in_group_log[row]-logsumexp(model.probability_user_in_group_log[row,])
+
+    return model
 
 
 def logsumexp(a):
