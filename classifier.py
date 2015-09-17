@@ -61,7 +61,7 @@ def create_toy_data(model, dividing_line):
 
 
 def step1(model, data):
-    ''' calculate probability of each user being in class 0…n '''
+    ''' calculate probability of each user being in group 0…n '''
     for row in xrange(0, data.shape[0]):
         model.probability_user_in_group_log[row] = (data[row,]*model.conditional_probabilities_log).sum(axis=1) + model.group_probabilities_log
 
