@@ -2,6 +2,11 @@
 import numpy as np
 import pdb
 
+# Dict with .attributes
+class dotdict:
+    __init__ = lambda self, **kw: setattr(self, '__dict__', kw)
+
+
 def initialize_model(model, groups=3, users=12, features=6):
     ''' Initialize the naive bayes model '''
     model.groups = groups
