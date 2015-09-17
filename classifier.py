@@ -33,6 +33,7 @@ def initialize_model(model, groups=3, users=12, features=6):
     model.probability_user_in_group_log = np.empty([model.users, model.groups], dtype=float)
 
     # Initialize last_probability_data_given_parameters_log as negative infinity
+    model.probability_data_given_parameters_log = None
     model.last_probability_data_given_parameters_log = -np.inf
     return model
 
@@ -60,7 +61,7 @@ def create_toy_data(model, dividing_line):
 
 def step1(model, data):
     ''' calculate probability of each user being in group 0...n '''
-    if(model.probability_data_given_parameters_log):
+    if(model.probability_data_given_parameters_log != None):
         model.last_probability_data_given_parameters_log = model.probability_data_given_parameters_log
 
     for row in xrange(model.users):
@@ -112,6 +113,20 @@ def get_model_stats(model):
         print 'Warning, loglikelihood decreases. LOCAL MINIMUM.'
         keep_going = 0
     return keep_going
+
+
+def iteration(model, data):
+    # Perform step1
+    model = step1(model=model, data=data)
+    # Perform step2
+    model = step2(model=model, data=data)
+    # Perfrom step3
+    model = step3(model=model)
+    # Perform step4
+    model = step4(model=model, data=data)
+    # Get stats
+    get_model_stats(model)
+    return model
 
 
 def logsumexp(a):
