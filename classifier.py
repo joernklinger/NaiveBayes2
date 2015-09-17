@@ -61,12 +61,25 @@ def create_toy_data(model, dividing_line):
 
 
 def step1(model, data):
-    ''' calculate probability of each user being in group 0…n '''
-    for row in xrange(0, data.shape[0]):
+    ''' calculate probability of each user being in group 0...n '''
+    for row in xrange(model.users):
         model.probability_user_in_group_log[row] = (data[row,]*model.conditional_probabilities_log).sum(axis=1) + model.group_probabilities_log
-
         # Normalize probability_user_in_class
         model.probability_user_in_group_log[row] = model.probability_user_in_group_log[row]-logsumexp(model.probability_user_in_group_log[row,])
+
+    return model
+
+
+def step2(model, data):
+    ''' use probability_user_in_class_log and the actual data to update the conditional_probabilities_log '''
+    feature_counts = np.ones([model.features, model.groups], dtype=float)
+    for col in xrange(model.features):
+        z_norm = np.zeros(model.groups)
+        for row in xrange(model.users):
+            if data[row, col] == 1:
+                feature_counts[col] += np.exp(model.probability_user_in_group_log[row])
+            z_norm += np.exp(model.probability_user_in_group_log[row])
+        model.conditional_probabilities_log[:,col] = np.log(feature_counts[col]) - np.log(z_norm)
 
     return model
 
