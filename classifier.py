@@ -1,7 +1,6 @@
 # Import modules
 import numpy as np
 import pdb
-from dotmap import dotmap
 
 def initialize_model(model, groups=3, users=12, features=6):
     ''' Initialize the naive bayes model '''
@@ -17,10 +16,9 @@ def initialize_model(model, groups=3, users=12, features=6):
 
     # for one class we initialize them all as log(0.5)
     # for the other class we initialize them as a random close to log(0.5)
-    model.conditional_probabilities_log[:, 0].fill(log(1.0/model.groups))
+    model.conditional_probabilities_log[:, 0].fill(np.log(1.0/model.groups))
 
     mu, sigma = 0.5, 0.0001
-    pdb.set_trace()
     model.conditional_probabilities_log[:, 1:model.groups] = (np.log(np.random.normal(mu, sigma, [model.features, model.groups-1])))
 
     # probability_user_in_group_log rows: users, cols: log([p(class0), p(class1)])
