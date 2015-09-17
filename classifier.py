@@ -34,7 +34,6 @@ def initialize_model(model, groups=3, users=12, features=6):
 
     # Initialize last_probability_data_given_parameters_log as negative infinity
     model.last_probability_data_given_parameters_log = -np.inf
-
     return model
 
 
@@ -56,17 +55,18 @@ def create_toy_data(model, dividing_line):
             n, p = 1, dividing_line
             nr_r = np.random.binomial(n, p, model.features/model.groups)
             toy_data[user, model.features/model.groups*group:model.features/model.groups*(group+1)] = nr_r
-
     return toy_data
 
 
 def step1(model, data):
     ''' calculate probability of each user being in group 0...n '''
+    if(model.probability_data_given_parameters_log):
+        model.last_probability_data_given_parameters_log = model.probability_data_given_parameters_log
+
     for row in xrange(model.users):
         model.probability_user_in_group_log[row] = (data[row,]*model.conditional_probabilities_log).sum(axis=1) + model.group_probabilities_log
         # Normalize probability_user_in_class
         model.probability_user_in_group_log[row] = model.probability_user_in_group_log[row]-logsumexp(model.probability_user_in_group_log[row,])
-
     return model
 
 
@@ -80,8 +80,38 @@ def step2(model, data):
                 feature_counts[col] += np.exp(model.probability_user_in_group_log[row])
             z_norm += np.exp(model.probability_user_in_group_log[row])
         model.conditional_probabilities_log[:,col] = np.log(feature_counts[col]) - np.log(z_norm)
-
     return model
+
+
+def step3(model):
+    ''' Update group probailities log '''
+    for group in xrange(model.groups):
+        model.group_probabilities_log[group] = logsumexp(model.probability_user_in_group_log[:,group])-np.log(model.users)
+    return model
+
+
+def step4(model, data):
+    ''' Calculate probability of the entire data given current parameters '''
+    model.probability_user_given_data_log = np.zeros(model.users, dtype=float)
+    for user in xrange(model.users):
+        for feature in xrange(model.features):
+            if data[user][feature] == 1:
+                p_user_given_group_log = np.empty(model.groups)
+                p_user_given_group_log = model.conditional_probabilities_log[:,feature] + p_user_given_group_log
+                model.probability_user_given_data_log[user] += logsumexp(p_user_given_group_log)
+    model.probability_data_given_parameters_log = np.sum(model.probability_user_given_data_log)
+    return model
+
+
+def get_model_stats(model):
+    ''' get model stastistics '''
+    keep_going = 1
+    print 'Log Likelihood: ' + str(model.probability_data_given_parameters_log)
+    print 'Raw Class Probabilities: ' + str(np.exp(model.group_probabilities_log))
+    if (model.probability_data_given_parameters_log < model.last_probability_data_given_parameters_log):
+        print 'Warning, loglikelihood decreases. LOCAL MINIMUM.'
+        keep_going = 0
+    return keep_going
 
 
 def logsumexp(a):
