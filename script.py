@@ -20,4 +20,4 @@ models_to_run.append(model2)
 results_report = run_models(models_to_run, attempts_at_each_model=5, max_iterations=5, data=data)
 
 # Get best model
-best_model = ger_best_model(results_report)
+best_model = get_best_model(results_report)
