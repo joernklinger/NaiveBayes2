@@ -140,17 +140,19 @@ def iterate_model(model, data):
     return model
 
 
-def run_models(models_to_run, attempts_at_each_model, max_iterations, data):
+def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, data):
     results_report = []
-    for model in models_to_run:
-        save_dir_name = 'groups_' + str(model.groups) + '_users_' + str(model.users) + '_features_' + str(model.features) + '_time_' + str(datetime.now()).replace(' ', '_')
+    for model_scheme in model_schemes_to_run:
+        save_dir_name = 'groups_' + str(model_scheme.groups) + '_users_' + str(model_scheme.users) + '_features_' + str(model_scheme.features) + '_time_' + str(datetime.now()).replace(' ', '_')
         os.makedirs('results/' + save_dir_name)
         for attempt in xrange(attempts_at_each_model):
+            model = model_scheme
             for iteration in xrange(max_iterations):
                 model = iterate_model(model, data)
                 keep_going, status = get_model_stats(model)
                 if (keep_going == 0):
                     model.status = status
+                    model.user_in_group = np.argmax(model.probability_user_in_group_log, axis=1)
                     save_file_name = 'model_' + str(attempt+1) + '_iterations_' + str(iteration+1) + '_groups_' + str(model.groups) + '_users_' + str(model.users) + '_features_' + str(model.features) + '_model_nr_' + str(attempt) + '_time_' + str(datetime.now()).replace(' ', '_')
                     np.save('results/' + save_dir_name + '/' + save_file_name, model)
                     results_report.append([model.last_probability_data_given_parameters_log, save_dir_name, save_file_name])
