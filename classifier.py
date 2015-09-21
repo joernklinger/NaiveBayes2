@@ -39,8 +39,12 @@ def initialize_model(model, groups=3, users=12, features=6):
     model.probability_data_given_parameters_log = None
     model.last_probability_data_given_parameters_log = -np.inf
 
-    # Model Status
+    # Model status
     model.status = None
+
+    # Other attributes
+    model.user_in_group = None
+    model.iteartions = 0
 
     return model
 
@@ -117,18 +121,25 @@ def get_model_stats(model):
     status = 'Running'
     print 'Log Likelihood: ' + str(model.probability_data_given_parameters_log)
     print 'Raw Class Probabilities: ' + str(np.exp(model.group_probabilities_log))
+    print '\n'
     if (model.probability_data_given_parameters_log < model.last_probability_data_given_parameters_log):
-        print 'Warning, loglikelihood decreases. LOCAL MINIMUM.'
         keep_going = 0
         status = 'Local Minimum'
+        print 'Local Minimum'
+        print 'Last Log Likelihood: ' + str(model.last_probability_data_given_parameters_log)
+        print '\n'
     elif (round(model.probability_data_given_parameters_log,3) == round(model.last_probability_data_given_parameters_log,3)):
-        print 'Model converged.'
         keep_going = 0
         status = 'Converged'
+        print 'Converged.'
+        print 'Log Likelihood: ' + str(model.probability_data_given_parameters_log)
+        print 'Raw Class Probabilities: ' + str(np.exp(model.group_probabilities_log))
+        print '\n'
     return keep_going, status
 
 
 def iterate_model(model, data):
+    ''' Performs one iteration of the model'''
     # Perform step1
     model = step1(model=model, data=data)
     # Perform step2
@@ -141,34 +152,50 @@ def iterate_model(model, data):
 
 
 def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, data):
-    results_report = []
+    ''' Runs models, saves models and result summaries '''
+    results_temp = []
     for model_scheme in model_schemes_to_run:
         save_dir_name = 'groups_' + str(model_scheme.groups) + '_users_' + str(model_scheme.users) + '_features_' + str(model_scheme.features) + '_time_' + str(datetime.now()).replace(' ', '_')
         os.makedirs('results/' + save_dir_name)
+        print 'Model scheme with group: ' + str(model_scheme.groups) + '\n'
         for attempt in xrange(attempts_at_each_model):
             model = model_scheme
+            print 'Attempt: ' + str(attempt) + ' start ' + '\n'
             for iteration in xrange(max_iterations):
+                print 'Attempt: ' + str(attempt) + ' iteration: ' + str(iteration) + '\n'
                 model = iterate_model(model, data)
                 keep_going, status = get_model_stats(model)
                 if (keep_going == 0):
                     model.status = status
                     model.user_in_group = np.argmax(model.probability_user_in_group_log, axis=1)
+                    model.iteartions = iteration+1
                     save_file_name = 'model_' + str(attempt+1) + '_iterations_' + str(iteration+1) + '_groups_' + str(model.groups) + '_users_' + str(model.users) + '_features_' + str(model.features) + '_model_nr_' + str(attempt) + '_time_' + str(datetime.now()).replace(' ', '_')
                     np.save('results/' + save_dir_name + '/' + save_file_name, model)
-                    results_report.append([model.last_probability_data_given_parameters_log, save_dir_name, save_file_name])
+                    results_temp.append([model.groups, model.last_probability_data_given_parameters_log, save_dir_name, save_file_name])
                     break
-    results_report = np.asarray(results_report)
-    report_file_name = 'report_' + str(datetime.now()).replace(' ', '_')
-    np.save('results/' + report_file_name, results_report)
-    return results_report
+    pdb.set_trace()
+    results_temp = np.asarray(results_temp)
+    results = dotdict()
+    results.groups = results_temp[:,0].astype(np.float)
+    results.loglikelihood = results_temp[:,1].astype(np.float)
+    results.save_dir_name = results_temp[:,2]
+    results.save_file_name = results_temp[:,3]
+
+    results_file_name = 'results_' + str(datetime.now()).replace(' ', '_')
+    np.save('results/' + results_file_name, results)
+    return results
 
 
-# Load best model
-def get_best_model(results_report):
-    best_model_index = np.argmax(results_report[:,0])
-    best_model_file_name ='results/' +  results_report[best_model_index][1] + '/' + results_report[best_model_index][2] + '.npy'
-    best_model = np.load(best_model_file_name)[()]
-    return best_model
+def get_best_models(results):
+    ''' Get the best model for each number of groups '''
+    best_models = []
+    for groups_nr in list(set(results.groups)):
+        indices = np.where(results.groups == groups_nr)[0]
+        best_model_index = indices[np.argmax(results.loglikelihood[indices])]
+        best_model_file_name ='results/' +  results.save_dir_name[best_model_index] + '/' + results.save_file_name[best_model_index] + '.npy'
+        best_model_for_groups = np.load(best_model_file_name)[()]
+        best_models.append(best_model_for_groups)
+    return best_models
 
 
 def logsumexp(a):
