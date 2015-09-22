@@ -181,7 +181,6 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
                     np.save('results/' + save_dir_name + '/' + save_file_name, model)
                     results_temp.append([model.groups, model.last_probability_data_given_parameters_log, save_dir_name, save_file_name])
                     break
-    pdb.set_trace()
     results_temp = np.asarray(results_temp)
     results = DotDict()
     results.groups = results_temp[:,0].astype(np.float)
