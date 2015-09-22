@@ -1,19 +1,17 @@
 from classifier import *
 
 # Initialize model
-model = dotdict()
-model = initialize_model(model, groups=3, users=120, features=30)
+model1 = ModelDict(groups=3, users=120, features=30)
 
 # Initialize model2
-model2 = dotdict()
-model2 = initialize_model(model2, groups=5, users=120, features=30)
+model2 = ModelDict(groups=5, users=120, features=30)
 
 # Create toy data (based on model)
-data = create_toy_data(model=model, probability_is_1=0.6)
+data = create_toy_data(model=model1, probability_is_1=0.6)
 
 # Add models to models_to_run arrayy
 model_schemes_to_run=[]
-model_schemes_to_run.append(model)
+model_schemes_to_run.append(model1)
 model_schemes_to_run.append(model2)
 
 # Run models

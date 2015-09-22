@@ -6,47 +6,55 @@ import pdb
 from datetime import datetime
 import os
 
-# Dict with .attributes
-class dotdict:
+class DotDict:
+    ''' Dictionary with .access '''
     __init__ = lambda self, **kw: setattr(self, '__dict__', kw)
 
+class ModelDict(DotDict):
+    ''' Model dictionary class '''
+    def __init__(self, groups=3, users=12, features=6):
+        self.groups = groups
+        self.users = users
+        self.features = features
 
-def initialize_model(model, groups=3, users=12, features=6):
-    ''' Initialize the naive bayes model '''
-    model.groups = groups
-    model.users = users
-    model.features = features
+        # Probabilities that a randomly drawn user is in class 0...n
+        self.group_probabilities_log = np.empty(self.groups)
+        self.group_probabilities_log.fill(np.log(1.0/self.groups))
 
-    # Probabilities that a randomly drawn user is in class 0...n
-    model.group_probabilities_log = np.empty(model.groups)
-    model.group_probabilities_log.fill(np.log(1.0/model.groups))
+        # Probabilities that a randomly drawn user is in class 0...n
+        self.group_probabilities_log = np.empty(self.groups)
+        self.group_probabilities_log.fill(np.log(1.0/self.groups))
 
-    # conditional probabilities for each feature by group
-    model.conditional_probabilities_log = np.empty([model.features, model.groups], dtype=float)
+        # Probabilities that a randomly drawn user is in class 0...n
+        self.group_probabilities_log = np.empty(self.groups)
+        self.group_probabilities_log.fill(np.log(1.0/self.groups))
 
-    # for one class we initialize them all as log(0.5)
-    # for the other class we initialize them as a random close to log(0.5)
-    model.conditional_probabilities_log[:, 0].fill(np.log(1.0/model.groups))
+        # conditional probabilities for each feature by group
+        self.conditional_probabilities_log = np.empty([self.features, self.groups], dtype=float)
 
-    mu, sigma = 1.0/model.groups, 0.0001
-    model.conditional_probabilities_log[:, 1:model.groups] = (np.log(np.random.normal(mu, sigma, [model.features, model.groups-1])))
-    model.conditional_probabilities_log = np.transpose(model.conditional_probabilities_log)
+        # for one class we initialize them all as log(1/groups)
+        # for the other class we initialize them as a random close to log(1/groups)
+        self.conditional_probabilities_log[:, 0].fill(np.log(1.0/self.groups))
+        mu, sigma = 1.0/self.groups, 0.0001
+        self.conditional_probabilities_log[:, 1:self.groups] = (np.log(np.random.normal(mu, sigma, [self.features, self.groups-1])))
+        self.conditional_probabilities_log = np.transpose(self.conditional_probabilities_log)
 
-    # probability_user_in_group_log rows: users, cols: log([p(class0), p(class1)])
-    model.probability_user_in_group_log = np.empty([model.users, model.groups], dtype=float)
+        # probability_user_in_group_log rows: users, cols: log([p(class0), p(class1)])
+        self.probability_user_in_group_log = np.empty([self.users, self.groups], dtype=float)
 
-    # Initialize last_probability_data_given_parameters_log as negative infinity
-    model.probability_data_given_parameters_log = None
-    model.last_probability_data_given_parameters_log = -np.inf
+        # Initialize last_probability_data_given_parameters_log as negative infinity
+        self.probability_data_given_parameters_log = None
+        self.last_probability_data_given_parameters_log = -np.inf
 
-    # Model status
-    model.status = None
+        # Model status
+        self.status = None
 
-    # Other attributes
-    model.user_in_group = None
-    model.iteartions = 0
+        # Other attributes
+        self.user_in_group = None
+        self.iterations = 0
 
-    return model
+    def info(self):
+        print 'groups: ' + str(self.groups) + '\n' + 'users: ' + str(self.users) + ' \n' + 'features: ' + str(self.features) + '\n' + 'iteration: ' +  str(self.iterations) + '\n' + 'status: ' + str(self.status)
 
 
 def create_toy_data(model, probability_is_1):
@@ -175,7 +183,7 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
                     break
     pdb.set_trace()
     results_temp = np.asarray(results_temp)
-    results = dotdict()
+    results = DotDict()
     results.groups = results_temp[:,0].astype(np.float)
     results.loglikelihood = results_temp[:,1].astype(np.float)
     results.save_dir_name = results_temp[:,2]
