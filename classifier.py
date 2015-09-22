@@ -202,6 +202,9 @@ def get_best_models(results):
         best_model_file_name ='results/' +  results.save_dir_name[best_model_index] + '/' + results.save_file_name[best_model_index] + '.npy'
         best_model_for_groups = np.load(best_model_file_name)[()]
         best_models.append(best_model_for_groups)
+    print 'Best models for number of groups: \n'
+    print range(len(best_models))
+    print[ int(x) for x in list(set(results.groups)) ]
     return best_models
 
 
