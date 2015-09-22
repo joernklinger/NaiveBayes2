@@ -66,7 +66,6 @@ def create_toy_data(model, probability_is_1):
     toy_data = np.zeros([model.users, model.features], dtype=int)
 
     for group in xrange(model.groups):
-        xrange(group, model.users/model.groups)
         for user in xrange(group*model.users/model.groups, model.users/model.groups*(group+1)):
             n, p = 1, 1-probability_is_1
             nr_r = np.random.binomial(n, p, model.features)
