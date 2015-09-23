@@ -17,6 +17,7 @@ class ModelDict(DotDict):
         self.users = users
         self.features = features
 
+    def initialize(self):
         # Probabilities that a randomly drawn user is in class 0...n
         self.group_probabilities_log = np.empty(self.groups)
         self.group_probabilities_log.fill(np.log(1.0/self.groups))
@@ -135,7 +136,7 @@ def get_model_stats(model):
         print 'Local Minimum'
         print 'Last Log Likelihood: ' + str(model.last_probability_data_given_parameters_log)
         print '\n'
-    elif (round(model.probability_data_given_parameters_log,3) == round(model.last_probability_data_given_parameters_log,3)):
+    elif (round(model.probability_data_given_parameters_log,5) == round(model.last_probability_data_given_parameters_log,5)):
         keep_going = 0
         status = 'Converged'
         print 'Converged.'
@@ -167,6 +168,7 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
         print 'Model scheme with group: ' + str(model_scheme.groups) + '\n'
         for attempt in xrange(attempts_at_each_model):
             model = model_scheme
+            model.initialize()
             print 'Attempt: ' + str(attempt) + ' start ' + '\n'
             for iteration in xrange(max_iterations):
                 print 'Attempt: ' + str(attempt) + ' iteration: ' + str(iteration) + '\n'
