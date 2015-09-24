@@ -84,10 +84,11 @@ def step1(model, data):
     if(model['status'] == None):
         model['status'] = 'Running'
 
-    for row in xrange(model['users']):
-        model['probability_user_in_group_log'][row] = (data[row,]*model['conditional_probabilities_log']).sum(axis=1) + model['group_probabilities_log']
+    for user in xrange(model['users']):5
+        model['probability_user_in_group_log'][user] = (data[user,]*model['conditional_probabilities_log']).sum(axis=1) + model['group_probabilities_log']
         # Normalize probability_user_in_class
-        model['probability_user_in_group_log'][row] = model['probability_user_in_group_log'][row]-logsumexp(model['probability_user_in_group_log'][row,])
+        model['probability_user_in_group_log'][user] = model['probability_user_in_group_log'][user]-logsumexp(model['probability_user_in_group_log'][user,])
+        model['user_in_group'] = np.argmax(model['probability_user_in_group_log'], axis=1)
     return model
 
 
