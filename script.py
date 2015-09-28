@@ -1,22 +1,27 @@
+# Load modules
 from classifier import *
 
-# Initialize model
+# Define model
 model1 = ModelDict(groups=3, users=120, features=30)
 
-# Initialize model2
-model2 = ModelDict(groups=5, users=120, features=30)
+# Create toy data
+data = create_toy_data(model=model1, probability_is_1=0.65)
 
-# Create toy data (based on model)
-data = create_toy_data(model=model1, probability_is_1=0.6)
-
-# Add models to models_to_run arrayy
+# Add model to list of schemes
 model_schemes_to_run=[]
 model_schemes_to_run.append(model1)
-model_schemes_to_run.append(model2)
 
-# Run models
-results = run_models(model_schemes_to_run, attempts_at_each_model=5, max_iterations=5, data=data)
+# Run model
+results = run_models(model_schemes_to_run, attempts_at_each_model=5, max_iterations=1000, data=data)
 
-# Get best model
-best_models = get_best_models(results)
+# Explore results
+results.iloc[:,0:3]
+results.loc[results['status'] == 'Converged']
+results.loglikelihood.argmax()
+results.loc[results['status'] == 'Converged'].loglikelihood.argmax()
 
+inex_of_best_model = results.loc[results['status'] == 'Converged'].loglikelihood.argmax()
+
+# Load best model
+
+best_model = load_model(index_of_best_model)
