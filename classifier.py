@@ -167,7 +167,10 @@ def iterate_model(model, data):
 
 def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, data):
     ''' Runs models, saves models and result summaries '''
-    results_temp = []
+
+    columns = ['groups', 'status', 'loglikelihood', 'dir', 'file']
+    results = pd.DataFrame(columns=columns)
+
     for model_scheme in model_schemes_to_run:
         save_dir_name = 'groups_' + str(model_scheme['groups']) + '_users_' + str(model_scheme['users']) + '_features_' + str(model_scheme['features']) + '_time_' + str(datetime.now()).replace(' ', '_')
         os.makedirs('results/' + save_dir_name)
@@ -188,41 +191,13 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
                     model['iteartions'] = iteration+1
                     save_file_name = 'model_' + str(attempt+1) + '_iterations_' + str(iteration+1) + '_groups_' + str(model['groups']) + '_users_' + str(model['users']) + '_features_' + str(model['features']) + '_model_nr_' + str(attempt) + '_time_' + str(datetime.now()).replace(' ', '_')
                     np.save('results/' + save_dir_name + '/' + save_file_name, model)
-                    results_temp.append([model['groups'], model['last_probability_data_given_parameters_log'], save_dir_name, save_file_name, model['status']])
+
+                    results.loc[results.shape[0]] = [model['groups'], model['status'], model['last_probability_data_given_parameters_log'], save_dir_name, save_file_name]
                     break
 
-    results_temp = np.asarray(results_temp)
-    results = dict()
-    results['groups'] = results_temp[:,0].astype(np.float)
-    results['loglikelihood'] = results_temp[:,1].astype(np.float)
-    results['save_dir_name'] = results_temp[:,2]
-    results['save_file_name'] = results_temp[:,3]
-    results['status'] = results_temp[:,4]
-
-    results_file_name = 'results_' + str(datetime.now()).replace(' ', '_')
-    np.save('results/' + results_file_name, results)
+    results_file_name = 'results_' + str(datetime.now()).replace(' ', '_') + '.csv'
+    results.to_csv(results_file_name)
     return results
-
-
-def load_model(index):
-    print index
-
-
-
-def get_best_models(results):
-    ''' Get the best model for each number of groups '''
-    best_models = []
-    for groups_nr in list(set(results['groups'])):
-        indices = np.where(results['groups'] == groups_nr)[0]
-        best_model_index = indices[np.argmax(results['loglikelihood'][indices])]
-        best_model_file_name ='results/' +  results['save_dir_name'][best_model_index] + '/' + results['save_file_name'][best_model_index] + '.npy'
-        best_model_for_groups = np.load(best_model_file_name)[()]
-        best_models.append(best_model_for_groups)
-    print 'Best models for number of groups: \n'
-    print range(len(best_models))
-    print[ int(x) for x in list(set(results['groups'])) ]
-    return best_models
-
 
 def logsumexp(a):
     ''' Log sum exp of an array of numbers '''
