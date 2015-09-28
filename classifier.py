@@ -6,6 +6,7 @@ import pdb
 from datetime import datetime
 import os
 import copy
+import pandas as pd
 
 
 class ModelDict(dict):
@@ -78,13 +79,10 @@ def create_toy_data(model, probability_is_1):
 
 def step1(model, data):
     ''' calculate probability of each user being in group 0...n '''
-    if(model['probability_data_given_parameters_log'] != None):
-        model['last_probability_data_given_parameters_log'] = model['probability_data_given_parameters_log']
-
     if(model['status'] == None):
         model['status'] = 'Running'
 
-    for user in xrange(model['users']):5
+    for user in xrange(model['users']):
         model['probability_user_in_group_log'][user] = (data[user,]*model['conditional_probabilities_log']).sum(axis=1) + model['group_probabilities_log']
         # Normalize probability_user_in_class
         model['probability_user_in_group_log'][user] = model['probability_user_in_group_log'][user]-logsumexp(model['probability_user_in_group_log'][user,])
@@ -114,12 +112,16 @@ def step3(model):
 
 def step4(model, data):
     ''' Calculate probability of the entire data given current parameters '''
+
+    if(model['probability_data_given_parameters_log'] != None):
+        model['last_probability_data_given_parameters_log'] = model['probability_data_given_parameters_log']
+
     model['probability_user_given_data_log'] = np.zeros(model['users'], dtype=float)
     for user in xrange(model['users']):
         for feature in xrange(model['features']):
             if data[user][feature] == 1:
                 p_user_given_group_log = np.zeros(model['groups'])
-                p_user_given_group_log = model['conditional_probabilities_log'][:,feature] + p_user_given_group_log
+                p_user_given_group_log = model['conditional_probabilities_log'][:,feature] + model['probability_user_in_group_log'][user]
                 model['probability_user_given_data_log'][user] += logsumexp(p_user_given_group_log)
     model['probability_data_given_parameters_log'] = np.sum(model['probability_user_given_data_log'])
     return model
@@ -132,7 +134,7 @@ def get_model_stats(model):
     print 'Log Likelihood: ' + str(model['probability_data_given_parameters_log'])
     print 'Raw Class Probabilities: ' + str(np.exp(model['group_probabilities_log']))
     print '\n'
-    if (round(model['probability_data_given_parameters_log'],10) == round(model['last_probability_data_given_parameters_log'],10)):
+    if (round(model['probability_data_given_parameters_log'],5) == round(model['last_probability_data_given_parameters_log'],5)):
         keep_going = 0
         status = 'Converged'
         print 'Converged.'
@@ -170,17 +172,17 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
         save_dir_name = 'groups_' + str(model_scheme['groups']) + '_users_' + str(model_scheme['users']) + '_features_' + str(model_scheme['features']) + '_time_' + str(datetime.now()).replace(' ', '_')
         os.makedirs('results/' + save_dir_name)
         print 'Model scheme with group: ' + str(model_scheme['groups']) + '\n'
+
         for attempt in xrange(attempts_at_each_model):
             model = copy.deepcopy(model_scheme)
             model.initialize()
             print 'Attempt: ' + str(attempt) + ' start ' + '\n'
+
             for iteration in xrange(max_iterations):
                 print 'Attempt: ' + str(attempt) + ' iteration: ' + str(iteration) + '\n'
-                backup_model = copy.deepcopy(model)
                 model = iterate_model(model, data)
                 keep_going, status = get_model_stats(model)
                 if (keep_going == 0):
-                    model = backup_model
                     model['status'] = status
                     model['user_in_group'] = np.argmax(model['probability_user_in_group_log'], axis=1)
                     model['iteartions'] = iteration+1
@@ -188,6 +190,7 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
                     np.save('results/' + save_dir_name + '/' + save_file_name, model)
                     results_temp.append([model['groups'], model['last_probability_data_given_parameters_log'], save_dir_name, save_file_name, model['status']])
                     break
+
     results_temp = np.asarray(results_temp)
     results = dict()
     results['groups'] = results_temp[:,0].astype(np.float)
@@ -199,6 +202,11 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
     results_file_name = 'results_' + str(datetime.now()).replace(' ', '_')
     np.save('results/' + results_file_name, results)
     return results
+
+
+def load_model(index):
+    print index
+
 
 
 def get_best_models(results):
