@@ -195,9 +195,16 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
                     results.loc[results.shape[0]] = [model['groups'], model['status'], model['last_probability_data_given_parameters_log'], save_dir_name, save_file_name]
                     break
 
-    results_file_name = 'results_' + str(datetime.now()).replace(' ', '_') + '.csv'
+    results_file_name = 'results/results_' + str(datetime.now()).replace(' ', '_') + '.csv'
     results.to_csv(results_file_name)
     return results
+
+
+def load_model(results, model_index):
+    model_file = 'results/' + results.iloc[model_index]['dir'] + '/' + results.iloc[model_index]['file'] + '.npy'
+    loaded_model = np.load(model_file)
+    return loaded_model
+
 
 def logsumexp(a):
     ''' Log sum exp of an array of numbers '''
