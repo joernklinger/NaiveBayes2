@@ -7,14 +7,16 @@ from datetime import datetime
 import os
 import copy
 import pandas as pd
+import json
 
 
 class ModelDict(dict):
     ''' Model dictionary class '''
-    def __init__(self, groups=3, users=12, features=6):
+    def __init__(self, groups=3, users=12, features=6, sigma=0.0001):
         self['groups'] = groups
         self['users'] = users
         self['features'] = features
+        self['sigma'] = sigma
 
     def initialize(self):
         # Probabilities that a randomly drawn user is in class 0...n
@@ -35,7 +37,7 @@ class ModelDict(dict):
         # for one class we initialize them all as log(1/groups)
         # for the other class we initialize them as a random close to log(1/groups)
         self['conditional_probabilities_log'][:, 0].fill(np.log(1.0/self['groups']))
-        mu, sigma = 1.0/self['groups'], 0.01
+        mu, sigma = 1.0/self['groups'], self['sigma']
         self['conditional_probabilities_log'][:, 1:self['groups']] = (np.log(np.random.normal(mu, sigma, [self['features'], self['groups']-1])))
         self['conditional_probabilities_log'] = np.transpose(self['conditional_probabilities_log'])
 
@@ -54,7 +56,7 @@ class ModelDict(dict):
         self['iterations'] = 0
 
     def info(self):
-        print 'groups: ' + str(self['groups']) + '\n' + 'users: ' + str(self['users']) + ' \n' + 'features: ' + str(self['features']) + '\n' + 'iteration: ' +  str(self['iterations']) + '\n' + 'status: ' + str(self['status'])
+        print 'groups: ' + str(self['groups']) + '\n' + 'users: ' + str(self['users']) + ' \n' + 'features: ' + str(self['features']) + '\n' + 'iteration: ' +  str(self['iterations']) + '\n' + 'status: ' + str(self['status']) + '\n' + 'sigma :' + str(self['sigma'])
 
 
 def create_toy_data(model, probability_is_1):
@@ -168,7 +170,7 @@ def iterate_model(model, data):
 def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, data):
     ''' Runs models, saves models and result summaries '''
 
-    columns = ['groups', 'status', 'loglikelihood', 'dir', 'file']
+    columns = ['sigma', 'groups', 'status', 'loglikelihood', 'dir', 'file']
     results = pd.DataFrame(columns=columns)
 
     for model_scheme in model_schemes_to_run:
@@ -179,6 +181,8 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
         for attempt in xrange(attempts_at_each_model):
             model = copy.deepcopy(model_scheme)
             model.initialize()
+            print(model.info())
+
             print 'Attempt: ' + str(attempt) + ' start ' + '\n'
 
             for iteration in xrange(max_iterations):
@@ -192,7 +196,7 @@ def run_models(model_schemes_to_run, attempts_at_each_model, max_iterations, dat
                     save_file_name = 'model_' + str(attempt+1) + '_iterations_' + str(iteration+1) + '_groups_' + str(model['groups']) + '_users_' + str(model['users']) + '_features_' + str(model['features']) + '_model_nr_' + str(attempt) + '_time_' + str(datetime.now()).replace(' ', '_')
                     np.save('results/' + save_dir_name + '/' + save_file_name, model)
 
-                    results.loc[results.shape[0]] = [model['groups'], model['status'], model['last_probability_data_given_parameters_log'], save_dir_name, save_file_name]
+                    results.loc[results.shape[0]] = [model['sigma'], model['groups'], model['status'], model['last_probability_data_given_parameters_log'], save_dir_name, save_file_name]
                     break
 
     results_file_name = 'results/results_' + str(datetime.now()).replace(' ', '_') + '.csv'
